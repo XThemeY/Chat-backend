@@ -2,8 +2,9 @@ import { ForbiddenException, Injectable, InternalServerErrorException } from '@n
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
-import { Tokens } from './types/index';
+import { LoginInfo, Tokens } from './types/index';
 import { CreateAuthDto, LoginAuthDto } from './dto';
+import { Account, User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -13,72 +14,103 @@ export class AuthService {
     private jwtService: JwtService
   ) {}
 
-  async register(dto: CreateAuthDto): Promise<Tokens> {
+  async register(dto: CreateAuthDto): Promise<LoginInfo> {
     try {
-      const hashedPassword = await this.hashData(dto.password);
-      const newUser = await this.prisma.user.create({
-        data: {
-          name: dto.name,
-          login: dto.login,
-          hashedPassword,
-          gender: null,
-          image: ''
-        }
-      });
+      let newUser;
 
-      const tokens = await this.getTokens(newUser.id, newUser.login);
-      await this.updateRtHash(newUser.id, tokens.refreshToken);
-      return tokens;
+      if (dto.provider !== 'credentials') {
+        const account = await this.getAccount(dto.provider, dto.providerAccountId);
+        if (!account) {
+          newUser = await this.prisma.user.create({
+            data: {
+              name: dto.name,
+              image: `https://avatar.iran.liara.run/username?username=[${dto.name}]`,
+              email: dto.email
+            }
+          });
+          await this.createAccount(newUser.id, dto.type, dto.provider, dto.providerAccountId);
+        }
+      } else {
+        const hashedPassword = await this.hashData(dto.password);
+        newUser = await this.prisma.user.create({
+          data: {
+            name: dto.name,
+            login: dto.login,
+            hashedPassword,
+            image: `https://avatar.iran.liara.run/username?username=[${dto.name}]`
+          }
+        });
+        await this.createAccount(newUser.id, dto.type, dto.provider);
+      }
+      return await this.login(dto);
     } catch (error) {
+      console.log(error);
+
       throw new InternalServerErrorException(error);
     }
   }
 
-  async login(dto: LoginAuthDto): Promise<Tokens> {
+  async login(dto: LoginAuthDto): Promise<LoginInfo> {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.user.findFirst({
         where: {
-          login: dto.login
+          OR: [{ login: dto?.login }, { email: dto?.email }]
         }
       });
 
       if (!user) {
         throw new ForbiddenException('Invalid credentials');
       }
+      let tokens: Tokens;
+      let response: LoginInfo;
+      if (dto.provider !== 'credentials') {
+        tokens = await this.getTokens(user.id, dto.provider, dto.providerAccountId);
+        await this.updateTokenHash(dto.provider, dto.providerAccountId, tokens);
+        response = {
+          user: { id: user.id, name: user.name, email: user.email, image: user.image },
+          account: {
+            type: dto.type,
+            provider: dto.provider,
+            providerAccountId: dto.providerAccountId,
+            access_token: tokens.accessToken
+          },
+          refresh_token: tokens.refreshToken
+        };
+      } else {
+        const passwordMatches = await bcrypt.compare(dto.password, user.hashedPassword);
 
-      const passwordMatches = await bcrypt.compare(dto.password, user.hashedPassword);
-
-      if (!passwordMatches) {
-        throw new ForbiddenException('Invalid credentials');
+        if (!passwordMatches) {
+          throw new ForbiddenException('Invalid credentials');
+        }
+        tokens = await this.getTokens(user.id, dto.provider, user.id);
+        await this.updateTokenHash(dto.provider, user.id, tokens);
+        response = {
+          user: { id: user.id, name: user.name, login: user.login, image: user.image },
+          account: {
+            type: dto.type,
+            provider: dto.provider,
+            providerAccountId: user.id,
+            access_token: tokens.accessToken
+          },
+          refresh_token: tokens.refreshToken
+        };
       }
-
-      const tokens = await this.getTokens(user.id, user.login);
-      await this.updateRtHash(user.id, tokens.refreshToken);
-      return tokens;
+      return response;
     } catch (error) {
+      console.log(error);
       throw new InternalServerErrorException(error);
     }
   }
 
-  async logout(userId: string) {
-    try {
-      await this.prisma.account.update({
-        where: {
-          userId
-        },
-        data: {
-          accessToken: null,
-          refreshToken: null
-        }
-      });
-    } catch (error) {
-      throw new InternalServerErrorException(error);
-    }
+  async logout(provider: string, providerAccountId: string) {
+    await this.deleteRtHash(provider, providerAccountId);
   }
 
   async refreshTokens(refreshToken: string): Promise<Tokens> {
     try {
-      const { userId } = await this.jwtService.verify(refreshToken, { secret: 'rt-secret' });
+      const { userId, provider, providerAccountId } = await this.jwtService.verify(refreshToken, {
+        secret: 'rt-secret'
+      });
 
       const user = await this.prisma.user.findUnique({
         where: {
@@ -89,22 +121,23 @@ export class AuthService {
       if (!user) {
         throw new ForbiddenException('Access denied');
       }
-      const auth = await this.prisma.account.findUnique({
+      const auth = await this.prisma.account.findFirst({
         where: {
-          userId
+          provider,
+          providerAccountId
         }
       });
       if (!auth) {
         throw new ForbiddenException('Access denied');
       }
 
-      const refreshTokenMatches = await bcrypt.compare(refreshToken, auth.refreshToken);
+      const refreshTokenMatches = await bcrypt.compare(refreshToken, auth.refresh_token);
 
       if (!refreshTokenMatches) {
         throw new ForbiddenException('Access denied');
       }
-      const tokens = await this.getTokens(user.id, user.login);
-      await this.updateRtHash(user.id, tokens.refreshToken);
+      const tokens = await this.getTokens(user.id, provider, providerAccountId);
+      await this.updateTokenHash(provider, providerAccountId, tokens);
       return tokens;
     } catch (error) {
       throw new InternalServerErrorException(error);
@@ -138,19 +171,21 @@ export class AuthService {
     return bcrypt.hash(data, 10);
   }
 
-  async getTokens(userId: string, username: string): Promise<Tokens> {
+  async getTokens(userId: string, provider: string, providerAccountId: string): Promise<Tokens> {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.sign(
         {
           userId,
-          username
+          provider,
+          providerAccountId
         },
         { secret: 'at-secret', expiresIn: '15m' }
       ),
       this.jwtService.sign(
         {
           userId,
-          username
+          provider,
+          providerAccountId
         },
         { secret: 'rt-secret', expiresIn: '1w' }
       )
@@ -162,35 +197,60 @@ export class AuthService {
     };
   }
 
-  async deleteRtHash(userId: string): Promise<void> {
+  async deleteRtHash(provider: string, providerAccountId: string): Promise<void> {
+    try {
+      const account = await this.prisma.account.findFirst({ where: { provider, providerAccountId } });
+
+      await this.prisma.account.update({
+        where: {
+          id: account.id
+        },
+        data: {
+          refresh_token: null
+        }
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  async updateTokenHash(provider: string, providerAccountId: string, tokens: Tokens): Promise<void> {
+    const refreshTokenHash = await this.hashData(tokens.refreshToken);
+    const expires_at = this.jwtService.decode(tokens.refreshToken).exp;
+    const account = await this.prisma.account.findFirst({ where: { provider, providerAccountId } });
     await this.prisma.account.update({
-      where: {
-        userId
-      },
+      where: { id: account.id },
       data: {
-        refreshToken: null
+        refresh_token: refreshTokenHash,
+        expires_at
       }
     });
   }
 
-  async updateRtHash(userId: string, refreshToken: string): Promise<void> {
-    const refreshTokenHash = await this.hashData(refreshToken);
-    const auth = await this.prisma.account.findFirst({
+  async createAccount(userId: string, type: string, provider: string, providerAccountId?: string): Promise<void> {
+    await this.prisma.account.create({
+      data: {
+        type: type,
+        user: {
+          connect: { id: userId }
+        },
+        provider: provider,
+        providerAccountId: providerAccountId || userId
+      }
+    });
+  }
+
+  async getAccount(provider: string, providerAccountId: string): Promise<Account | null> {
+    const account = await this.prisma.account.findFirst({
       where: {
-        userId
+        provider,
+        providerAccountId
       }
     });
 
-    if (!auth) {
-      return;
+    if (!account) {
+      return null;
     }
-    await this.prisma.account.update({
-      where: {
-        userId
-      },
-      data: {
-        refreshToken: refreshTokenHash
-      }
-    });
+    return account;
   }
 }

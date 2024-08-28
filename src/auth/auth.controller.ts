@@ -1,10 +1,11 @@
 import { Controller, Post, Body, HttpStatus, HttpCode, Res, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto, LoginAuthDto } from './dto/index';
-import { AccessToken } from './types/index';
+import { LoginInfo } from './types/index';
 import { GetCurrentUser, Public } from './common/decorators';
 import { Response } from 'express';
 import { Cookies } from './common/decorators/cookie.decorator';
+import { log } from 'console';
 
 @Controller('auth')
 export class AuthController {
@@ -17,26 +18,39 @@ export class AuthController {
   @Public()
   @Post('/register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() dto: CreateAuthDto, @Res({ passthrough: true }) res: Response): Promise<AccessToken> {
-    const { accessToken, refreshToken } = await this.authService.register(dto);
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: this.secure });
-    return { accessToken };
+  async register(@Body() dto: CreateAuthDto, @Res({ passthrough: true }) res: Response): Promise<LoginInfo> {
+    const { user, account, refresh_token } = await this.authService.register(dto);
+    //  res.cookie('refreshToken', refresh_token, { httpOnly: true, secure: this.secure });
+
+    return {
+      user,
+      account
+    };
+  }
+
+  @Post('/log')
+  async log(@Body() dto: CreateAuthDto): Promise<void> {
+    console.log('log', dto);
   }
 
   @Public()
   @Post('/login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginAuthDto, @Res({ passthrough: true }) res: Response): Promise<AccessToken> {
-    const { accessToken, refreshToken } = await this.authService.login(dto);
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: this.secure });
-    return { accessToken };
+  async login(@Body() dto: LoginAuthDto, @Res({ passthrough: true }) res: Response): Promise<LoginInfo> {
+    const { user, account, refresh_token } = await this.authService.login(dto);
+    //  res.cookie('refreshToken', refresh_token, { httpOnly: true, secure: this.secure });
+
+    return {
+      user,
+      account
+    };
   }
 
   @Post('/logout')
   @HttpCode(HttpStatus.OK)
   async logout(@GetCurrentUser('userId') userId: string, @Res({ passthrough: true }) res: Response) {
     res.clearCookie('refreshToken');
-    return this.authService.logout(userId);
+    return this.authService.logout(userId, userId);
   }
 
   @Public()
