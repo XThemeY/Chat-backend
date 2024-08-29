@@ -3,8 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { LoginInfo, Tokens } from './types/index';
-import { CreateAuthDto, LoginAuthDto } from './dto';
-import { Account, User } from '@prisma/client';
+import { LoginAuthDto } from './dto';
+import { Account } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -14,17 +14,16 @@ export class AuthService {
     private jwtService: JwtService
   ) {}
 
-  async register(dto: CreateAuthDto): Promise<LoginInfo> {
+  async register(dto: LoginAuthDto): Promise<boolean> {
     try {
       let newUser;
-
       if (dto.provider !== 'credentials') {
         const account = await this.getAccount(dto.provider, dto.providerAccountId);
         if (!account) {
           newUser = await this.prisma.user.create({
             data: {
               name: dto.name,
-              image: `https://avatar.iran.liara.run/username?username=[${dto.name}]`,
+              image: dto.image ?? `https://avatar.iran.liara.run/username?username=${dto.name}`,
               email: dto.email
             }
           });
@@ -37,28 +36,35 @@ export class AuthService {
             name: dto.name,
             login: dto.login,
             hashedPassword,
-            image: `https://avatar.iran.liara.run/username?username=[${dto.name}]`
+            image: `https://avatar.iran.liara.run/username?username=${dto.name}`
           }
         });
         await this.createAccount(newUser.id, dto.type, dto.provider);
       }
-      return await this.login(dto);
+
+      return true;
     } catch (error) {
       console.log(error);
-
       throw new InternalServerErrorException(error);
     }
   }
 
   async login(dto: LoginAuthDto): Promise<LoginInfo> {
     try {
-      const user = await this.prisma.user.findFirst({
+      let user = await this.prisma.user.findFirst({
         where: {
           OR: [{ login: dto?.login }, { email: dto?.email }]
         }
       });
 
-      if (!user) {
+      if (!user && dto.provider !== 'credentials') {
+        await this.register(dto);
+        user = await this.prisma.user.findFirst({
+          where: {
+            OR: [{ login: dto?.login }, { email: dto?.email }]
+          }
+        });
+      } else if (!user) {
         throw new ForbiddenException('Invalid credentials');
       }
       let tokens: Tokens;

@@ -1,10 +1,12 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class LoginAuthDto {
+  @IsOptional()
   @IsNotEmpty()
   @IsString()
   login: string;
 
+  @IsOptional()
   @IsNotEmpty()
   @IsString()
   password: string;
@@ -21,7 +23,15 @@ export class LoginAuthDto {
   @IsString()
   provider: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   providerAccountId: string;
+
+  @IsOptional()
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  image: string;
 }

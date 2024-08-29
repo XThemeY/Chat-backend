@@ -1,11 +1,10 @@
 import { Controller, Post, Body, HttpStatus, HttpCode, Res, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto, LoginAuthDto } from './dto/index';
+import { LoginAuthDto } from './dto/index';
 import { LoginInfo } from './types/index';
 import { GetCurrentUser, Public } from './common/decorators';
 import { Response } from 'express';
 import { Cookies } from './common/decorators/cookie.decorator';
-import { log } from 'console';
 
 @Controller('auth')
 export class AuthController {
@@ -18,18 +17,12 @@ export class AuthController {
   @Public()
   @Post('/register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() dto: CreateAuthDto, @Res({ passthrough: true }) res: Response): Promise<LoginInfo> {
-    const { user, account, refresh_token } = await this.authService.register(dto);
-    //  res.cookie('refreshToken', refresh_token, { httpOnly: true, secure: this.secure });
-
-    return {
-      user,
-      account
-    };
+  async register(@Body() dto: LoginAuthDto): Promise<void> {
+    await this.authService.register(dto);
   }
 
   @Post('/log')
-  async log(@Body() dto: CreateAuthDto): Promise<void> {
+  async log(@Body() dto: LoginAuthDto): Promise<void> {
     console.log('log', dto);
   }
 
