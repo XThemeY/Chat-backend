@@ -1,10 +1,11 @@
-import { Controller, Post, Body, HttpStatus, HttpCode, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, HttpCode, Res, BadRequestException, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginAuthDto } from './dto/index';
 import { LoginInfo } from './types/index';
 import { GetCurrentUser, Public } from './common/decorators';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { Cookies } from './common/decorators/cookie.decorator';
+import { log } from 'console';
 
 @Controller('auth')
 export class AuthController {
@@ -22,16 +23,21 @@ export class AuthController {
   }
 
   @Post('/log')
-  async log(@Body() dto: LoginAuthDto): Promise<void> {
-    console.log('log', dto);
+  async log(@Req() req: Request): Promise<void> {
+    console.log('log', req.cookies);
   }
 
   @Public()
   @Post('/login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginAuthDto, @Res({ passthrough: true }) res: Response): Promise<LoginInfo> {
+  async login(
+    @Req() req: Request,
+    @Body() dto: LoginAuthDto,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<LoginInfo> {
     const { user, account, refresh_token } = await this.authService.login(dto);
-    //  res.cookie('refreshToken', refresh_token, { httpOnly: true, secure: this.secure });
+
+    res.cookie('refreshToken', refresh_token, { httpOnly: true, secure: this.secure });
 
     return {
       user,
