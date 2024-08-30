@@ -78,7 +78,8 @@ export class AuthService {
             type: dto.type,
             provider: dto.provider,
             providerAccountId: dto.providerAccountId,
-            access_token: tokens.accessToken
+            access_token: tokens.accessToken.access_token,
+            expires_at: tokens.accessToken.expires_at
           },
           refresh_token: tokens.refreshToken
         };
@@ -96,7 +97,8 @@ export class AuthService {
             type: dto.type,
             provider: dto.provider,
             providerAccountId: user.id,
-            access_token: tokens.accessToken
+            access_token: tokens.accessToken.access_token,
+            expires_at: tokens.accessToken.expires_at
           },
           refresh_token: tokens.refreshToken
         };
@@ -185,7 +187,7 @@ export class AuthService {
           provider,
           providerAccountId
         },
-        { secret: 'at-secret', expiresIn: '15m' }
+        { secret: 'at-secret', expiresIn: '10s' }
       ),
       this.jwtService.sign(
         {
@@ -193,12 +195,15 @@ export class AuthService {
           provider,
           providerAccountId
         },
-        { secret: 'rt-secret', expiresIn: '1w' }
+        { secret: 'rt-secret', expiresIn: '15s' }
       )
     ]);
 
     return {
-      accessToken,
+      accessToken: {
+        access_token: accessToken,
+        expires_at: this.jwtService.decode(accessToken).exp * 1000
+      },
       refreshToken
     };
   }

@@ -1,8 +1,9 @@
 export type Tokens = {
-  accessToken: string;
+  accessToken: AccessToken;
   refreshToken: string;
 };
 
 export type AccessToken = {
-  accessToken: string;
+  access_token: string;
+  expires_at: number;
 };
