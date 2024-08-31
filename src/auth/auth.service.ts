@@ -111,7 +111,12 @@ export class AuthService {
   }
 
   async logout(provider: string, providerAccountId: string) {
-    await this.deleteRtHash(provider, providerAccountId);
+    const isLogout = await this.deleteRtHash(provider, providerAccountId);
+
+    if (isLogout) {
+      return true;
+    }
+    return false;
   }
 
   async refreshTokens(refreshToken: string): Promise<Tokens> {
@@ -187,7 +192,7 @@ export class AuthService {
           provider,
           providerAccountId
         },
-        { secret: 'at-secret', expiresIn: '10s' }
+        { secret: 'at-secret', expiresIn: '30m' }
       ),
       this.jwtService.sign(
         {
@@ -195,7 +200,7 @@ export class AuthService {
           provider,
           providerAccountId
         },
-        { secret: 'rt-secret', expiresIn: '15s' }
+        { secret: 'rt-secret', expiresIn: '1d' }
       )
     ]);
 
@@ -208,18 +213,23 @@ export class AuthService {
     };
   }
 
-  async deleteRtHash(provider: string, providerAccountId: string): Promise<void> {
+  async deleteRtHash(provider: string, providerAccountId: string): Promise<boolean> {
     try {
       const account = await this.prisma.account.findFirst({ where: { provider, providerAccountId } });
+
+      if (!account) return false;
 
       await this.prisma.account.update({
         where: {
           id: account.id
         },
         data: {
-          refresh_token: null
+          refresh_token: null,
+          expires_at: null
         }
       });
+
+      return true;
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
