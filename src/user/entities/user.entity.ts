@@ -1,6 +1,4 @@
-import { User } from '@prisma/client';
-
-export class UserDto {
+export class User {
   id: string;
   name: string;
   login: string;

@@ -237,6 +237,7 @@ export class AuthService {
 
   async updateTokenHash(provider: string, providerAccountId: string, tokens: Tokens): Promise<void> {
     const refreshTokenHash = await this.hashData(tokens.refreshToken);
+
     const expires_at = this.jwtService.decode(tokens.refreshToken).exp;
     const account = await this.prisma.account.findFirst({ where: { provider, providerAccountId } });
     await this.prisma.account.update({

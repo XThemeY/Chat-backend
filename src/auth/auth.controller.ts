@@ -17,6 +17,7 @@ import { GetUser, Public } from './common/decorators';
 import { Response, Request } from 'express';
 import { Cookies } from './common/decorators/cookie.decorator';
 import { RtJWTGuard } from './common/guards';
+import { log } from 'console';
 
 @Controller('auth')
 export class AuthController {
@@ -48,7 +49,6 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ): Promise<LoginInfo> {
     const { user, account, refresh_token } = await this.authService.login(dto);
-
     res.cookie('authentication', refresh_token, { httpOnly: true, secure: this.secure });
 
     return {
