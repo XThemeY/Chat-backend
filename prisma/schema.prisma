@@ -1,5 +1,6 @@
 generator client {
-   provider = "prisma-client-js"
+   provider        = "prisma-client-js"
+   previewFeatures = ["omitApi"]
 }
 
 datasource db {
@@ -51,9 +52,9 @@ model Account {
 }
 
 model Conversation {
-   id            String   @id @default(cuid())
-   createdAt     DateTime @default(now())
-   lastMessageAt DateTime @default(now())
+   id            String    @id @default(cuid())
+   createdAt     DateTime  @default(now())
+   lastMessageAt DateTime?
    name          String?
    isGroup       Boolean?
 

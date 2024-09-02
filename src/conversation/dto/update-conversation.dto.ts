@@ -1,6 +1,15 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateConversationDto } from './create-conversation.dto';
+import { IsDateString, IsNotEmpty, IsString } from 'class-validator';
 
-export class UpdateConversationDto extends PartialType(CreateConversationDto) {
-  id: number;
+export class UpdateConversationDto {
+  @IsNotEmpty()
+  @IsString()
+  conversationId: string;
+
+  @IsNotEmpty()
+  @IsDateString()
+  lastMessageAt: Date;
+
+  @IsNotEmpty()
+  @IsString()
+  messageId: string;
 }

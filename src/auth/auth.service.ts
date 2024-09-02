@@ -52,6 +52,9 @@ export class AuthService {
   async login(dto: LoginAuthDto): Promise<LoginInfo> {
     try {
       let user = await this.prisma.user.findFirst({
+        omit: {
+          hashedPassword: false
+        },
         where: {
           OR: [{ login: dto?.login }, { email: dto?.email }]
         }

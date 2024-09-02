@@ -1,26 +1,76 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { UpdateMessageDto } from './dto/update-message.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { Message } from '@prisma/client';
 
 @Injectable()
 export class MessageService {
-  create(createMessageDto: CreateMessageDto) {
-    return 'This action adds a new message';
+  constructor(private prisma: PrismaService) {}
+
+  async findByConversationId(conversationId: string): Promise<Message[]> {
+    try {
+      const messages = await this.prisma.message.findMany({
+        where: {
+          conversationId: conversationId
+        },
+        include: {
+          sender: true,
+          seen: true
+        },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      });
+      return messages;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findAll() {
-    return `This action returns all message`;
-  }
+  async create(data: CreateMessageDto): Promise<Message> {
+    try {
+      const message = await this.prisma.message.create({
+        data: {
+          body: data.message,
+          image: data.image,
+          attachments: data.attachments || [],
+          conversation: {
+            connect: {
+              id: data.conversationId
+            }
+          },
+          sender: {
+            connect: {
+              id: data.userId
+            }
+          },
+          seen: {
+            connect: {
+              id: data.userId
+            }
+          }
+        },
+        include: {
+          seen: true,
+          sender: true
+        }
+      });
 
-  findOne(id: number) {
-    return `This action returns a #${id} message`;
-  }
+      // await this.prisma.user.update({
+      //   where: {
+      //     id: data.userId
+      //   },
+      //   data: {
+      //     id: data.userId,
+      //     seenMessageIds: {
+      //       push: message.id
+      //     }
+      //   }
+      // });
 
-  update(id: number, updateMessageDto: UpdateMessageDto) {
-    return `This action updates a #${id} message`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} message`;
+      return message;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 }

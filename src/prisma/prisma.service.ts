@@ -6,6 +6,11 @@ import { PrismaClient } from '@prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {
     super({
+      omit: {
+        user: {
+          hashedPassword: true
+        }
+      },
       datasources: {
         db: {
           url: configService.get('DATABASE_URL')
