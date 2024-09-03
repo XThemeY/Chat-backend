@@ -2,18 +2,21 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   Patch,
   Post,
-  Query
+  Query,
+  ValidationPipe
 } from '@nestjs/common';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { ConversationService } from './conversation.service';
-import { Conversation } from '@prisma/client';
+import { Conversation, Prisma } from '@prisma/client';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { QueryDto } from './dto/query-conversations.dto';
 
 @Controller('conversations')
 export class ConversationController {
@@ -38,8 +41,11 @@ export class ConversationController {
 
   @Get('/:id')
   @HttpCode(HttpStatus.OK)
-  async getConversationById(@Param('id') id: string): Promise<Conversation> {
-    const conversation = await this.conversationService.findById(id);
+  async getConversationById(
+    @Param('id') id: string,
+    @Query(new ValidationPipe({ transform: true })) query: QueryDto
+  ): Promise<Conversation> {
+    const conversation = await this.conversationService.findById(id, query);
     if (!conversation) {
       throw new BadRequestException('Conversation not found');
     }
@@ -71,5 +77,14 @@ export class ConversationController {
   async updateConversations(@Body() dto: UpdateConversationDto): Promise<Conversation> {
     const conversation = await this.conversationService.update(dto);
     return conversation;
+  }
+
+  @Delete('/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteConversations(
+    @Param('id') conversationId: string,
+    @Body('currentUserId') currentUserId: string
+  ): Promise<Prisma.BatchPayload> {
+    return await this.conversationService.delete(conversationId, currentUserId);
   }
 }

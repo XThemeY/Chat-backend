@@ -1,6 +1,7 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
 import { MessageService } from './message.service';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { UpdateMessageDto } from './dto/update-message.dto';
 
 @Controller('messages')
 export class MessageController {
@@ -21,5 +22,11 @@ export class MessageController {
   @Post('/')
   createConversation(@Body() dto: CreateMessageDto) {
     return this.messageService.create(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Patch('/:id')
+  update(@Param('id') lastMessageId: string, @Body() dto: UpdateMessageDto) {
+    return this.messageService.update(lastMessageId, dto);
   }
 }

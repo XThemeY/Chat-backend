@@ -1,8 +1,9 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Conversation } from '@prisma/client';
+import { Conversation, Prisma } from '@prisma/client';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { QueryDto } from './dto/query-conversations.dto';
 
 @Injectable()
 export class ConversationService {
@@ -114,13 +115,18 @@ export class ConversationService {
     }
   }
 
-  async findById(id: string): Promise<Conversation> {
+  async findById(id: string, query: QueryDto): Promise<Conversation> {
     try {
       const conversation = await this.prisma.conversation.findUnique({
         where: {
           id: id
         },
         include: {
+          messages: {
+            include: {
+              seen: query.include?.includes('seen')
+            }
+          },
           users: true
         }
       });
@@ -155,6 +161,26 @@ export class ConversationService {
       });
       return conversation;
     } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  async delete(conversationId: string, currentUserId: string): Promise<Prisma.BatchPayload> {
+    try {
+      const count = await this.prisma.conversation.deleteMany({
+        where: {
+          id: conversationId,
+          users: {
+            some: {
+              id: currentUserId
+            }
+          }
+        }
+      });
+
+      return count;
+    } catch (error) {
+      console.log(error);
       throw new InternalServerErrorException(error);
     }
   }
