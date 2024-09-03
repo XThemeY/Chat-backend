@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { User } from './entities/user.entity';
 
 @Injectable()
 export class UserService {
@@ -17,7 +17,7 @@ export class UserService {
         return null;
       }
 
-      return new User(user);
+      return user;
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
@@ -36,15 +36,7 @@ export class UserService {
         }
       });
 
-      if (!users) {
-        return [];
-      }
-
-      const mapUsers = users.map((user) => {
-        return new User(user);
-      });
-
-      return mapUsers;
+      return users;
     } catch (error) {
       throw new InternalServerErrorException(error);
     }

@@ -8,10 +8,21 @@ import { APP_GUARD } from '@nestjs/core';
 import { AtJWTGuard } from './auth/common/guards';
 import { ConversationService } from './conversation/conversation.service';
 import { ConversationModule } from './conversation/conversation.module';
+import { DialogModule } from './dialog/dialog.module';
+import { UploadService } from './upload/upload.service';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }), AuthModule, MessageModule, UserModule, ConversationModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    AuthModule,
+    MessageModule,
+    UserModule,
+    ConversationModule,
+    DialogModule,
+    UploadModule
+  ],
   controllers: [],
-  providers: [AppGateway, { provide: APP_GUARD, useClass: AtJWTGuard }, ConversationService]
+  providers: [AppGateway, { provide: APP_GUARD, useClass: AtJWTGuard }, ConversationService, UploadService]
 })
 export class AppModule {}

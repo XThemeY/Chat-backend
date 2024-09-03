@@ -24,7 +24,7 @@ export class ConversationController {
   async createConversation(@Body() dto: CreateConversationDto): Promise<Conversation> {
     let conversation: Conversation;
 
-    if (dto.currentUserId) {
+    if (dto.userId) {
       conversation = await this.conversationService.createDialog(dto);
     } else {
       conversation = await this.conversationService.create(dto);
@@ -49,16 +49,20 @@ export class ConversationController {
   @Get('/')
   @HttpCode(HttpStatus.OK)
   async getConversations(
-    @Query('userId') userId: string,
-    @Query('currentUserId') currentUserId: string
-  ): Promise<Conversation[]> {
-    let conversations: Conversation[];
-    if (currentUserId) {
-      conversations = await this.conversationService.find(userId, currentUserId);
+    @Query('currentUserId') currentUserId: string,
+    @Query('userId') userId: string
+  ): Promise<Conversation[] | Conversation> {
+    let conversations: Conversation[] | Conversation;
+
+    if (userId) {
+      conversations = await this.conversationService.findDialog(currentUserId, userId);
     } else {
-      conversations = await this.conversationService.findUserConversations(userId);
+      conversations = await this.conversationService.findConversations(currentUserId);
     }
 
+    if (!conversations) {
+      return [];
+    }
     return conversations;
   }
 

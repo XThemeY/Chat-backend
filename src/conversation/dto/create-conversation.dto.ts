@@ -6,13 +6,13 @@ class Member {
 }
 
 export class CreateConversationDto {
-  @IsNotEmpty()
-  @IsString()
-  userId: string;
-
   @IsOptional()
   @IsString()
-  currentUserId?: string;
+  userId?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  currentUserId: string;
 
   @IsOptional()
   @IsBoolean()

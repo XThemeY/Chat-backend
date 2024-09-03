@@ -13,15 +13,14 @@ export class ConversationService {
       const conversation = await this.prisma.conversation.create({
         data: {
           name: dto.name,
-          isGroup: dto.isGroup,
-          userIds: [...dto.members.map((member: { value: string }) => member.value), dto.userId],
+          isGroup: true,
           users: {
             connect: [
               ...dto.members.map((member: { value: string }) => ({
                 id: member.value
               })),
               {
-                id: dto.userId
+                id: dto.currentUserId
               }
             ]
           }
@@ -41,7 +40,6 @@ export class ConversationService {
     try {
       const conversation = await this.prisma.conversation.create({
         data: {
-          userIds: [dto.currentUserId, dto.userId],
           users: {
             connect: [
               {
@@ -63,36 +61,36 @@ export class ConversationService {
     }
   }
 
-  // Исправить поиск диалогов
-  async find(userId: string, currentUserId: string): Promise<Conversation[]> {
+  async findDialog(currentUserId: string, userId: string): Promise<Conversation> {
     try {
-      const conversations = await this.prisma.conversation.findMany({
+      const conversation = await this.prisma.conversation.findFirst({
         where: {
-          OR: [
-            {
-              userIds: {
-                equals: [currentUserId, userId]
-              }
-            },
-            {
-              userIds: {
-                equals: [userId, currentUserId]
+          isGroup: false,
+          users: {
+            some: {
+              id: currentUserId
+            }
+          },
+          AND: {
+            users: {
+              none: {
+                id: { notIn: [userId, currentUserId] }
               }
             }
-          ]
+          }
         },
         include: {
           users: true
         }
       });
 
-      return conversations;
+      return conversation;
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
   }
 
-  async findUserConversations(userId: string): Promise<Conversation[]> {
+  async findConversations(userId: string): Promise<Conversation[]> {
     try {
       const conversations = await this.prisma.conversation.findMany({
         orderBy: {

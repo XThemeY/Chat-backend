@@ -1,7 +1,7 @@
 import { Controller, Get, HttpCode, HttpStatus, NotFoundException, Param } from '@nestjs/common';
 import { UserService } from './user.service';
 import { GetUser } from 'src/auth/common/decorators';
-import { User } from './entities/user.entity';
+import { User } from '@prisma/client';
 
 @Controller('users')
 export class UserController {

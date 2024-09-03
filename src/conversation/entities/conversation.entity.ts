@@ -17,10 +17,8 @@ export class Conversation {
     this.id = conversation.id;
     this.name = conversation.name;
     this.isGroup = conversation.isGroup;
-    this.messageIds = conversation.messageIds;
     this.createdAt = conversation.createdAt;
-    this.userIds = conversation.userIds;
     this.users = conversation.users;
-    this.messages = [...conversation.messages] ?? [];
+    this.messages = conversation.messages;
   }
 }
