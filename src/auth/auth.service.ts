@@ -23,7 +23,7 @@ export class AuthService {
           newUser = await this.prisma.user.create({
             data: {
               name: dto.name,
-              image: dto.image ?? `https://avatar.iran.liara.run/username?username=${dto.name}`,
+              image: dto.image ?? `https://ui-avatars.com/api/?name=${dto.name}?format=png`,
               email: dto.email
             }
           });
@@ -36,7 +36,7 @@ export class AuthService {
             name: dto.name,
             login: dto.login,
             hashedPassword,
-            image: `https://avatar.iran.liara.run/username?username=${dto.name}`
+            image: `https://ui-avatars.com/api/?name=${dto.name}?format=png`
           }
         });
         await this.createAccount(newUser.id, dto.type, dto.provider);

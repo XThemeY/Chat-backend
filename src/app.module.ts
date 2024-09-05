@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { MessageModule } from './message/message.module';
-import { AppGateway } from './app/app.gateway';
 import { UserModule } from './user/user.module';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -23,6 +22,6 @@ import { UploadModule } from './upload/upload.module';
     UploadModule
   ],
   controllers: [],
-  providers: [AppGateway, { provide: APP_GUARD, useClass: AtJWTGuard }, ConversationService, UploadService]
+  providers: [{ provide: APP_GUARD, useClass: AtJWTGuard }, ConversationService, UploadService]
 })
 export class AppModule {}
