@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -45,6 +46,7 @@ export class ConversationController {
         this.socketGateway.server.to(user.id).emit('conversation:new', conversation);
       }
     });
+
     return conversation;
   }
 
@@ -53,12 +55,13 @@ export class ConversationController {
   async getConversationById(
     @Param('id') id: string,
     @Query(new ValidationPipe({ transform: true })) query: QueryDto
-  ): Promise<Conversation> {
+  ): Promise<Conversation[]> {
     const conversation = await this.conversationService.findById(id, query);
     if (!conversation) {
-      throw new BadRequestException('Conversation not found');
+      throw new NotFoundException('Conversation not found');
     }
-    return conversation;
+
+    return [conversation];
   }
 
   @Get('/')
@@ -67,7 +70,7 @@ export class ConversationController {
     @Query('currentUserId') currentUserId: string,
     @Query('userId') userId: string
   ): Promise<Conversation[] | Conversation> {
-    let conversations: Conversation[] | Conversation;
+    let conversations: Conversation[];
 
     if (userId) {
       conversations = await this.conversationService.findDialog(currentUserId, userId);
@@ -75,7 +78,7 @@ export class ConversationController {
       conversations = await this.conversationService.findConversations(currentUserId);
     }
 
-    if (!conversations) {
+    if (!conversations || conversations.length === 0) {
       return [];
     }
     return conversations;

@@ -4,19 +4,21 @@ import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { LoginInfo, Tokens } from './types/index';
 import { LoginAuthDto } from './dto';
-import { Account } from '@prisma/client';
+import { Account, User } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     //  private userService: UserService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
+    private configService: ConfigService
   ) {}
 
   async register(dto: LoginAuthDto): Promise<boolean> {
     try {
-      let newUser;
+      let newUser: User;
       if (dto.provider !== 'credentials') {
         const account = await this.getAccount(dto.provider, dto.providerAccountId);
         if (!account) {
@@ -195,7 +197,7 @@ export class AuthService {
           provider,
           providerAccountId
         },
-        { secret: 'at-secret', expiresIn: '30m' }
+        { secret: 'at-secret', expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRES') }
       ),
       this.jwtService.sign(
         {
@@ -203,7 +205,7 @@ export class AuthService {
           provider,
           providerAccountId
         },
-        { secret: 'rt-secret', expiresIn: '1d' }
+        { secret: 'rt-secret', expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRES') }
       )
     ]);
 

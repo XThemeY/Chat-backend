@@ -62,7 +62,7 @@ export class ConversationService {
     }
   }
 
-  async findDialog(currentUserId: string, userId: string): Promise<Conversation> {
+  async findDialog(currentUserId: string, userId: string): Promise<Conversation[]> {
     try {
       const conversation = await this.prisma.conversation.findFirst({
         where: {
@@ -85,7 +85,11 @@ export class ConversationService {
         }
       });
 
-      return conversation;
+      if (!conversation) {
+        return null;
+      }
+
+      return [conversation];
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
