@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Message } from '@prisma/client';
+import { Message, User } from '@prisma/client';
 import { UpdateMessageDto } from './dto/update-message.dto';
 
 @Injectable()
@@ -63,7 +63,7 @@ export class MessageService {
     }
   }
 
-  async update(lastMessageId: string, data: UpdateMessageDto): Promise<Message> {
+  async update(lastMessageId: string, data: UpdateMessageDto): Promise<Message & { sender: User; seen: User[] }> {
     try {
       const message = await this.prisma.message.update({
         where: {

@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Conversation, Prisma } from '@prisma/client';
+import { Conversation, Message, Prisma, User } from '@prisma/client';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { QueryDto } from './dto/query-conversations.dto';
 
@@ -9,7 +9,7 @@ import { QueryDto } from './dto/query-conversations.dto';
 export class ConversationService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateConversationDto): Promise<Conversation> {
+  async create(dto: CreateConversationDto): Promise<Conversation & { users: User[] }> {
     try {
       const conversation = await this.prisma.conversation.create({
         data: {
@@ -37,7 +37,7 @@ export class ConversationService {
     }
   }
 
-  async createDialog(dto: CreateConversationDto): Promise<Conversation> {
+  async createDialog(dto: CreateConversationDto): Promise<Conversation & { users: User[] }> {
     try {
       const conversation = await this.prisma.conversation.create({
         data: {
@@ -115,7 +115,10 @@ export class ConversationService {
     }
   }
 
-  async findById(id: string, query: QueryDto): Promise<Conversation> {
+  async findById(
+    id: string,
+    query: QueryDto = { include: ['seen'] }
+  ): Promise<Conversation & { messages: Message[]; users: User[] }> {
     try {
       const conversation = await this.prisma.conversation.findUnique({
         where: {
@@ -136,7 +139,7 @@ export class ConversationService {
     }
   }
 
-  async update(data: UpdateConversationDto): Promise<Conversation> {
+  async update(data: UpdateConversationDto): Promise<Conversation & { messages: Message[]; users: User[] }> {
     try {
       const conversation = await this.prisma.conversation.update({
         where: {

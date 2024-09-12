@@ -5,15 +5,15 @@ import { UserModule } from './user/user.module';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AtJWTGuard } from './auth/common/guards';
-import { ConversationService } from './conversation/conversation.service';
 import { ConversationModule } from './conversation/conversation.module';
 import { DialogModule } from './dialog/dialog.module';
-import { UploadService } from './upload/upload.service';
 import { UploadModule } from './upload/upload.module';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    SocketModule,
     AuthModule,
     MessageModule,
     UserModule,
@@ -22,6 +22,6 @@ import { UploadModule } from './upload/upload.module';
     UploadModule
   ],
   controllers: [],
-  providers: [{ provide: APP_GUARD, useClass: AtJWTGuard }, ConversationService, UploadService]
+  providers: [{ provide: APP_GUARD, useClass: AtJWTGuard }]
 })
 export class AppModule {}

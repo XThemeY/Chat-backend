@@ -17,14 +17,16 @@ import { GetUser, Public } from './common/decorators';
 import { Response, Request } from 'express';
 import { Cookies } from './common/decorators/cookie.decorator';
 import { RtJWTGuard } from './common/guards';
-import { log } from 'console';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
-  secure: boolean;
-
-  constructor(private readonly authService: AuthService) {
-    this.secure = false;
+  #secure: boolean;
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService
+  ) {
+    this.#secure = this.configService.get('NODE_ENV') === 'production';
   }
 
   @Public()
@@ -49,7 +51,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ): Promise<LoginInfo> {
     const { user, account, refresh_token } = await this.authService.login(dto);
-    res.cookie('authentication', refresh_token, { httpOnly: true, secure: this.secure });
+    res.cookie('authentication', refresh_token, { httpOnly: true, secure: this.#secure });
 
     return {
       user,
@@ -81,7 +83,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ): Promise<AccessToken> {
     const tokens = await this.authService.refreshTokens(refreshToken);
-    res.cookie('authentication', tokens.refreshToken, { httpOnly: true, secure: this.secure });
+    res.cookie('authentication', tokens.refreshToken, { httpOnly: true, secure: this.#secure });
     return tokens.accessToken;
   }
 

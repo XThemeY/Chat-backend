@@ -14,18 +14,22 @@ import {
 } from '@nestjs/common';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { ConversationService } from './conversation.service';
-import { Conversation, Prisma } from '@prisma/client';
+import { Conversation, Prisma, User } from '@prisma/client';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { QueryDto } from './dto/query-conversations.dto';
+import { SocketGateway } from 'src/socket/socket.gateway';
 
 @Controller('conversations')
 export class ConversationController {
-  constructor(private readonly conversationService: ConversationService) {}
+  constructor(
+    private readonly conversationService: ConversationService,
+    private readonly socketGateway: SocketGateway
+  ) {}
 
   @Post('/')
   @HttpCode(HttpStatus.CREATED)
-  async createConversation(@Body() dto: CreateConversationDto): Promise<Conversation> {
-    let conversation: Conversation;
+  async createConversation(@Body() dto: CreateConversationDto): Promise<Conversation & { users: User[] }> {
+    let conversation: Conversation & { users: User[] };
 
     if (dto.userId) {
       conversation = await this.conversationService.createDialog(dto);
@@ -36,6 +40,11 @@ export class ConversationController {
     if (!conversation) {
       throw new BadRequestException('Error creating conversation');
     }
+    conversation.users.forEach((user) => {
+      if (user.id) {
+        this.socketGateway.server.to(user.id).emit('conversation:new', conversation);
+      }
+    });
     return conversation;
   }
 
@@ -76,6 +85,13 @@ export class ConversationController {
   @HttpCode(HttpStatus.OK)
   async updateConversations(@Body() dto: UpdateConversationDto): Promise<Conversation> {
     const conversation = await this.conversationService.update(dto);
+    const lastMessage = conversation.messages[conversation.messages.length - 1];
+    conversation.users.map((user) => {
+      this.socketGateway.server
+        .to(user.id)
+        .emit('conversation:update', { id: conversation.id, messages: [lastMessage] });
+    });
+
     return conversation;
   }
 
@@ -85,6 +101,11 @@ export class ConversationController {
     @Param('id') conversationId: string,
     @Body('currentUserId') currentUserId: string
   ): Promise<Prisma.BatchPayload> {
-    return await this.conversationService.delete(conversationId, currentUserId);
+    const conversation = await this.conversationService.findById(conversationId);
+    conversation.users.forEach((user) => {
+      this.socketGateway.server.to(user.id).emit('conversation:delete', conversation);
+    });
+    const ceonv = await this.conversationService.delete(conversationId, currentUserId);
+    return ceonv;
   }
 }
