@@ -6,7 +6,6 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AtJWTGuard } from './auth/common/guards';
 import { ConversationModule } from './conversation/conversation.module';
-import { DialogModule } from './dialog/dialog.module';
 import { UploadModule } from './upload/upload.module';
 import { SocketModule } from './socket/socket.module';
 
@@ -18,7 +17,6 @@ import { SocketModule } from './socket/socket.module';
     MessageModule,
     UserModule,
     ConversationModule,
-    DialogModule,
     UploadModule
   ],
   controllers: [],
