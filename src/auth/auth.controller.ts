@@ -1,4 +1,14 @@
-import { Controller, Post, Body, HttpStatus, HttpCode, Res, UseGuards, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Headers,
+  Post,
+  Body,
+  HttpStatus,
+  HttpCode,
+  Res,
+  UseGuards,
+  BadRequestException
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginAuthDto } from './dto/index';
 import { AccessToken, LoginInfo } from './types/index';
@@ -31,7 +41,6 @@ export class AuthController {
   async login(@Body() dto: LoginAuthDto, @Res({ passthrough: true }) res: Response): Promise<LoginInfo> {
     const { user, account, refresh_token } = await this.authService.login(dto);
     res.cookie('authentication', refresh_token, { httpOnly: true, secure: this.#secure, sameSite: 'lax' });
-
     return {
       user,
       account
@@ -52,17 +61,19 @@ export class AuthController {
       throw new BadRequestException('Logout failed');
     }
   }
-
+  index = 0;
   @Public()
   @UseGuards(RtJWTGuard)
   @Post('/refresh')
   @HttpCode(HttpStatus.OK)
   async refreshTokens(
+    @Headers() headers: any,
     @Cookies('authentication') refreshToken: string,
     @Res({ passthrough: true }) res: Response
   ): Promise<AccessToken> {
     const tokens = await this.authService.refreshTokens(refreshToken);
     res.cookie('authentication', tokens.refreshToken, { httpOnly: true, secure: this.#secure, sameSite: 'lax' });
+
     return tokens.accessToken;
   }
 }

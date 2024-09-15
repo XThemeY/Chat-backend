@@ -197,7 +197,10 @@ export class AuthService {
           provider,
           providerAccountId
         },
-        { secret: 'at-secret', expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRES') }
+        {
+          secret: this.configService.get('ACCESS_JWT_SECRET') ?? 'rAEAKyObPHQuJM+eUczlOP25irE0QSj/0JMXpzpjU/A=',
+          expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRES') ?? '15m'
+        }
       ),
       this.jwtService.sign(
         {
@@ -205,7 +208,10 @@ export class AuthService {
           provider,
           providerAccountId
         },
-        { secret: 'rt-secret', expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRES') }
+        {
+          secret: this.configService.get('REFRESH_JWT_SECRET') ?? 'L2Xfc9t3EwC+viFQIb05MgPKKAlTyMNS0xRY/os2Gko=',
+          expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRES') ?? '30d'
+        }
       )
     ]);
 

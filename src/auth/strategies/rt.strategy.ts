@@ -14,7 +14,7 @@ export class RtJWTStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
           return req.cookies.authentication;
         }
       ]),
-      secretOrKey: 'rt-secret'
+      secretOrKey: process.env.REFRESH_JWT_SECRET
     });
   }
 
