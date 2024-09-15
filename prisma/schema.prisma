@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
    provider = "postgresql"
-   url      = env("DATABASE_URL")
+   url      = "postgresql://XTheme:39911009XTheme@db:5432/xthemey-chat?schema=public"
 }
 
 model User {

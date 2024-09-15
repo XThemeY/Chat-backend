@@ -24,7 +24,7 @@ dist-ssr
 *.sw?
 .pnp.js
 .yarn/install-state.gz
-.env
+.env*
 /db/
 
 # next.js

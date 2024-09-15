@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Headers,
-  Post,
-  Body,
-  HttpStatus,
-  HttpCode,
-  Res,
-  UseGuards,
-  BadRequestException
-} from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, HttpCode, Res, UseGuards, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginAuthDto } from './dto/index';
 import { AccessToken, LoginInfo } from './types/index';
@@ -25,7 +15,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService
   ) {
-    this.#secure = this.configService.get('NODE_ENV') === 'production';
+    this.#secure = false; //this.configService.get('NODE_ENV') === 'production';
   }
 
   @Public()
@@ -67,7 +57,6 @@ export class AuthController {
   @Post('/refresh')
   @HttpCode(HttpStatus.OK)
   async refreshTokens(
-    @Headers() headers: any,
     @Cookies('authentication') refreshToken: string,
     @Res({ passthrough: true }) res: Response
   ): Promise<AccessToken> {

@@ -11,7 +11,7 @@ import { SocketModule } from './socket/socket.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env.production', '.env', '.minio_keys.env'] }),
     SocketModule,
     AuthModule,
     MessageModule,
